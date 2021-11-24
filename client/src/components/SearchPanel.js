@@ -10,8 +10,13 @@ import {
 
 import axios from 'axios';
 
-const getStoreApi = 'http://127.0.0.1:5000/stores';
 const imgUrl = 'https://cdn.vox-cdn.com/thumbor/pOMbzDvdEWS8NIeUuhxp23wi_cU=/1400x1400/filters:format(png)/cdn.vox-cdn.com/uploads/chorus_asset/file/19700731/googlemaps.png'
+
+const getStoreApi = (centerLat, centerLng, cornerLat, cornerLng, radius, keyword) => {
+  const baseUrl = 'https://elife-test.blocktown.city:2096/api/v1/map/storeInfo/search'
+  const reqUrl = `${baseUrl}?centerLat=${centerLat}&centerLng=${centerLng}&radius=${radius}&cornerLat=${cornerLat}&cornerLng=${cornerLng}&keyword=${keyword}`;
+  return reqUrl;
+};
 
 function StoreCard(props) {
   const { info } = props;
@@ -19,49 +24,40 @@ function StoreCard(props) {
   return (
     <Card onClick={() => window.alert('card')}>
       <img src={imgUrl} height={'20px'} />
-      <CardInfo>{info.title}</CardInfo>
-      <CardInfo>{info.distance}</CardInfo>
-      <CardInfo>{info.priceRange}</CardInfo>
-      <CardInfo>{info.isOpen}</CardInfo>
+      <CardInfo>{info.storeName}</CardInfo>
     </Card>
   )
 };
 
 function StoreCardList(props) {
-  const { data } = props;
-
-  return Object.entries(data).map((info) => {
-    return <StoreCard key={info[0]} info={info[1]} />
-  });
+  const { storeList } = props.data;
+  if (storeList && storeList.length) {
+    const { storeList } = props.data;
+    return Object.entries(storeList).map((info) => {
+      return <StoreCard key={info[0]} info={info[1]} />
+    });
+  } else {
+    return <div></div>;
+  }
 };
 
 function SearchPanel() {
-  const [data, setData] = useState([
-    {
-      title: '好吃水餃',
-      isOpen: '營業中',
-      distance: 100,
-      priceRange: '100 ~ 500',
-    }
-  ]);
+  const [data, setData] = useState([]);
   const viewport = useSelector((state) => state.viewport);
   const dispatch = useDispatch();
 
-  const fetchData = async () => {
-    const { data } = await axios(`${getStoreApi}`);
+  const fetchData = async (latitude, longitude) => {
+    const cornerLat = latitude + 0.01;
+    const cornerLng = longitude + 0.01;
+    const storeInfoApi = getStoreApi(latitude, longitude, cornerLat, cornerLng, 2000, '美食');
+    const { data } = await axios(`${storeInfoApi}`);
     setData(data);
   };
 
   const sendSearchReq = (e) => {
     if (e.key === 'Enter') {
-      fetchData();
-      const newViewport = {
-        latitude: 25,
-        longitude: 121.501,
-        zoom: 12,
-        bearing: 0,
-      };
-      dispatch(update(newViewport));
+      const { latitude, longitude } = viewport;
+      fetchData(latitude, longitude);
     }
   };
 

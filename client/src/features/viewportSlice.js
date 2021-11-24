@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit'
+import { LinearInterpolator } from 'react-map-gl';
 
 export const viewportSlice = createSlice({
   name: 'viewport',
@@ -9,7 +10,15 @@ export const viewportSlice = createSlice({
   },
   reducers: {
     update: (state, action) => {
-      return action.payload;
+      if (action.payload.isClick) {
+        return {
+          ...action.payload,
+          transitionDuration: 300,
+          transitionInterpolator: new LinearInterpolator(),
+        };
+      } else {
+        return action.payload;
+      }
     },
   },
 })
