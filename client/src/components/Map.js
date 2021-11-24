@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {useState, useEffect} from 'react';
+import { useState, useEffect } from 'react';
 
 import { useSelector, useDispatch } from 'react-redux'
 import { update } from '../features/viewportSlice'
@@ -8,6 +8,7 @@ import ReactMapGL from 'react-map-gl';
 import {
   MapController, Source, Layer, LinearInterpolator,
 } from 'react-map-gl';
+
 import pin from './pin.png';
 
 import axios from 'axios';
@@ -21,35 +22,31 @@ const getMarkerApi = (centerLat, centerLng, cornerLat, cornerLng, radius, keywor
   return reqUrl;
 };
 
-const getBackgroundApi = 'http://10.0.0.12:5000/background';
+const getBackgroundApi = 'http://192.168.66.53:5000/background';
 
-const linearInterpolator = new LinearInterpolator();
 
 class MyMapController extends MapController {
-  constructor(fetchMarker, viewport) {
+  constructor(fetchMarker) {
     super();
-    this.panend = false;
-    this.viewport = viewport;
     this.fetchMarker = fetchMarker;
   }
 
   _onPanEnd(e) {
-    this.fetchMarker(this.viewport);
+    const mapState = this.getMapState();
+    const { latitude, longitude } = mapState._viewportProps;
+    this.fetchMarker(latitude, longitude);
   }
-};
-
-const geoJson = {
-  type: 'FeatureCollection',
-  features: [],
-  properties: [],
 };
 
 const layerStyle = {
   id: 'pin',
   type: 'symbol',
   layout: {
-    'icon-image': ['image', 'pin'],
-    'icon-size': 1,
+    'icon-image': ['image', 'elife'],
+    'icon-size': 0.8,
+  },
+  paint: {
+    'icon-color': '#EEEEEE',
   },
 };
 
@@ -58,7 +55,7 @@ const backgroundStyle = {
   type: 'symbol',
   layout: {
     'icon-image': ['image', 'pin'],
-    'icon-size': 0.5,
+    'icon-size': 0.3,
   },
 };
 
@@ -118,23 +115,16 @@ function Map() {
   const [marker, setMarker] = useState(initMarker);
   const [background, setBackground] = useState(initMarker);
 
-  const fetchMarker = async (viewport) => {
-    const { latitude, longitude } = viewport;
-    const randomAmt = Math.floor(Math.random() * 200);
+  const fetchMarker = async (latitude, longitude) => {
     const cornerLat = latitude + 0.01;
     const cornerLng = longitude + 0.01;
     const markerApi = getMarkerApi(latitude, longitude, cornerLat, cornerLng, 2000, '美食');
-    const { data } = await axios(`${markerApi}?latitude=${latitude}&longitude=${longitude}&amount=${randomAmt}`);
+    const { data } = await axios(`${markerApi}?latitude=${latitude}&longitude=${longitude}`);
     const {...markers} = new Marker(data.markerList);
     setMarker(markers);
   };
 
-  const fetchBackground = async () => {
-    const background = await axios(getBackgroundApi);
-    setBackground(background.data);
-  };
-
-  const mapController = new MyMapController(fetchMarker, viewport);
+  const mapController = new MyMapController(fetchMarker);
 
   useEffect(async () => {
     const { data } = await axios(getBackgroundApi);
@@ -171,16 +161,17 @@ function Map() {
       const { coordinates } = e.features[0].geometry;
       const latitude = coordinates[1];
       const longitude = coordinates[0];
-      const zoom = 15;
+      const zoom = 14;
       dispatch(update({
         latitude,
         longitude,
         zoom,
-        // transitionInterpolator: linearInterpolator,
-        transitionDuration: 300,
+        isClick: true,
+        // transitionDuration: 200,
+        // transitionInterpolator: new LinearInterpolator(),
       }));
       const { properties } = e.features[0];
-      window.alert(properties.storeName || properties.name);
+      //window.alert(properties.storeName || properties.name);
     }
   }
 
